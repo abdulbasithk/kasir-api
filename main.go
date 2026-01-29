@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"kasir-api/database"
 	"kasir-api/handlers"
@@ -33,8 +34,6 @@ func main() {
 		DBConn: viper.GetString("DB_CONN"),
 	}
 
-	fmt.Println("DB Connection String:", config.DBConn)
-
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
 		fmt.Println(err)
@@ -46,9 +45,22 @@ func main() {
 	productService := services.NewProductService(productRepo)
 	productHandler := handlers.NewProductHandler(productService)
 
+	categoryRepo := repositories.NewCategoryRepository(db)
+	categoryService := services.NewCategoryService(categoryRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
+
 	http.HandleFunc("/api/produk", productHandler.HandleProducts)
 	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
-
+	http.HandleFunc("/api/categories", categoryHandler.HandleCategories)
+	http.HandleFunc("/api/categories/", categoryHandler.HandleCategoryByID)
+	// localhost:8080/health
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "OK",
+			"message": "API Running",
+		})
+	})
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running di", addr)
 
